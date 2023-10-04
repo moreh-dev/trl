@@ -17,11 +17,13 @@ from typing import Optional
 
 from accelerate import Accelerator
 from datasets import load_dataset
+import mlflow
 from peft import LoraConfig
 from tqdm import tqdm
 from transformers import AutoModelForSequenceClassification, AutoTokenizer, BitsAndBytesConfig, HfArgumentParser
 
 from trl import RewardConfig, RewardTrainer
+from trl.trainer.moreh_utils import TBTrainerCallback, get_num_parameters
 
 
 tqdm.pandas()
@@ -33,8 +35,8 @@ class ScriptArguments:
     Hyperparameters to fine-tune a reward model on a given dataset with the `RewardTrainer`.
     """
 
-    model_name: Optional[str] = field(default="facebook/opt-350m", metadata={"help": "the model name"})
-    dataset_name: Optional[str] = field(default="Anthropic/hh-rlhf", metadata={"help": "the dataset name"})
+    model_name_or_path: Optional[str] = field(default="camembert-base", metadata={"help": "the model name"})
+    dataset_name_or_path: Optional[str] = field(default="Anthropic/hh-rlhf", metadata={"help": "the dataset name"})
     dataset_text_field: Optional[str] = field(default="text", metadata={"help": "the text field of the dataset"})
     log_with: Optional[str] = field(default=None, metadata={"help": "use 'wandb' to log with wandb"})
     logging_steps: Optional[int] = field(default=500, metadata={"help": "the number of update steps between two logs"})
@@ -73,16 +75,20 @@ else:
     quantization_config = None
 
 model = AutoModelForSequenceClassification.from_pretrained(
-    script_args.model_name,
+    script_args.model_name_or_path,
     quantization_config=quantization_config,
     device_map=device_map,
     trust_remote_code=script_args.trust_remote_code,
     num_labels=1,
 )
 
+num_params = get_num_parameters(model)
+mlflow.log_param('num_params', num_params)
+
+
 # Step 2: Load the dataset and pre-process it
-tokenizer = AutoTokenizer.from_pretrained(script_args.model_name)
-train_dataset = load_dataset(script_args.dataset_name, split="train")
+tokenizer = AutoTokenizer.from_pretrained(script_args.model_name_or_path)
+train_dataset = load_dataset(script_args.dataset_name_or_path, split="train")
 
 
 # Tokenize chosen/rejected pairs of inputs
@@ -120,7 +126,7 @@ train_dataset = train_dataset.filter(
 if script_args.eval_split == "none":
     eval_dataset = None
 else:
-    eval_dataset = load_dataset(script_args.dataset_name, split=script_args.eval_split)
+    eval_dataset = load_dataset(script_args.dataset_name_or_path, split=script_args.eval_split)
 
     eval_dataset = eval_dataset.map(
         preprocess_function,
@@ -165,4 +171,12 @@ trainer = RewardTrainer(
     peft_config=peft_config,
 )
 
-trainer.train()
+trainer.add_callback(TBTrainerCallback())
+
+train_result = trainer.train()
+
+trainer.save_model()
+trainer.log_metrics("train", train_result.metrics)
+trainer.save_metrics("train", train_result.metrics)
+
+mlflow.end_run()
