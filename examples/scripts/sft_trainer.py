@@ -82,7 +82,6 @@ mlflow.log_param('num_params', num_params)
 
 # Step 2: Load the dataset
 train_dataset = load_dataset(script_args.dataset_name_or_path, split="train")
-eval_dataset = load_dataset(script_args.dataset_name_or_path, split="test")
 
 # Step 4: Define the LoraConfig
 if script_args.use_peft:
