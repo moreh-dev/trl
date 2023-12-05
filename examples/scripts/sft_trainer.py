@@ -81,7 +81,7 @@ num_params = get_num_parameters(model)
 mlflow.log_param('num_params', num_params)
 
 # Step 2: Load the dataset
-dataset = load_dataset(script_args.dataset_name_or_path, split="train")
+train_dataset = load_dataset(script_args.dataset_name_or_path, split="train")
 
 # Step 4: Define the LoraConfig
 if script_args.use_peft:
@@ -99,7 +99,7 @@ trainer = SFTTrainer(
     model=model,
     args=training_args,
     max_seq_length=script_args.seq_length,
-    train_dataset=dataset,
+    train_dataset=train_dataset,
     dataset_text_field=script_args.dataset_text_field,
     peft_config=peft_config,
 )
