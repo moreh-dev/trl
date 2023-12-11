@@ -41,7 +41,7 @@ class TBTrainerCallback(TrainerCallback):
                 all_loss_of_this_epoch.append(each['loss'])
 
         epoch_loss = sum(all_loss_of_this_epoch) / len(all_loss_of_this_epoch)
-        mlflow.log_metric("epoch_loss", epoch_loss, step=state.epoch)
+        mlflow.log_metric("epoch_loss", epoch_loss, step=int(state.epoch))
 
         self.epoch_start = len(state.log_history)
 
