@@ -19,7 +19,9 @@ class TBTrainerCallback(TrainerCallback):
             self.start_time = time.time()
 
     def on_step_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        self.epoch_loss_list.append(state.log_history[-1]["loss"])
+        latest_lost = state.log_history[-1].get("loss", None)
+        if latest_lost is not None:
+            self.epoch_loss_list.append(latest_lost)
 
     def on_log(self, args: TrainingArguments, state: TrainerState, control: TrainerControl,**kwargs):
         if args.logging_strategy == 'steps':
