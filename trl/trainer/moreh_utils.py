@@ -42,6 +42,7 @@ class TBTrainerCallback(TrainerCallback):
         # calculate average loss of epoch
         epoch_loss = sum(self.epoch_loss_list) / len(self.epoch_loss_list)
         mlflow.log_metric("epoch_loss", epoch_loss, step=state.epoch)
+        self.epoch_loss_list = []
 
 
 # Log number of parameters function
