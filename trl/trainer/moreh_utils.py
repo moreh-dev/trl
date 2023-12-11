@@ -11,17 +11,15 @@ os.environ["MLFLOW_FLATTEN_PARAMS"]="True"
 class TBTrainerCallback(TrainerCallback):
     "A callback log loss, learning rate, and throughput each logging step"
     start_time = time.time()
+    epoch_loss_list = []
+
     def on_step_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
         # count the time after the logging step
         if state.global_step == 0 or state.global_step % args.logging_steps == 1:
             self.start_time = time.time()
 
-    
-    start_time = time.time()
-    def on_step_begin(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
-        # count the time after the logging step
-        if state.global_step == 0 or state.global_step % args.logging_steps == 1:
-            self.start_time = time.time()
+    def on_step_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        self.epoch_loss_list.append(state.log_history[-1]["loss"])
 
     def on_log(self, args: TrainingArguments, state: TrainerState, control: TrainerControl,**kwargs):
         if args.logging_strategy == 'steps':
@@ -36,7 +34,15 @@ class TBTrainerCallback(TrainerCallback):
                 mlflow.log_metric("lr", state.log_history[-1]["learning_rate"] , step=state.global_step)
                 mlflow.log_metric("throughput", throughput , step=state.global_step)
                 mlflow.log_metric("train_loss", state.log_history[-1]["loss"] , step=state.global_step)
-                print(f'loss: {state.log_history[-1]["loss"]}, lr: {state.log_history[-1]["learning_rate"]}, throughput: {throughput}, step: {state.global_step}')       
+                print(f'loss: {state.log_history[-1]["loss"]}, lr: {state.log_history[-1]["learning_rate"]}, throughput: {throughput}, step: {state.global_step}')
+
+            # when an epoch ends
+            
+    def on_epoch_end(self, args: TrainingArguments, state: TrainerState, control: TrainerControl, **kwargs):
+        # calculate average loss of epoch
+        epoch_loss = sum(self.epoch_loss_list) / len(self.epoch_loss_list)
+        mlflow.log_metric("epoch_loss", epoch_loss, step=state.epoch)
+
 
 # Log number of parameters function
 def get_num_parameters(model):
