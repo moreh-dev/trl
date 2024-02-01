@@ -1,3 +1,4 @@
+sacremoses==0.0.53
 datasets>=1.17.0
 diffusers>=0.21.2
 tqdm==4.65.2
@@ -6,4 +7,4 @@ accelerate==0.21.0
 peft==0.5.0
 tyro>=0.5.7
 evaluate==0.4.1
--e .
+sacremoses==0.0.53
