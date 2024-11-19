@@ -10,4 +10,4 @@ peft==0.5.0
 tyro>=0.5.7
 evaluate==0.4.1
 numpy>=1.18.2
--e .
+trl==0.7.2
